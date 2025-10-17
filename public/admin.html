@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - PayFlow</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>PAYFLOW ADMIN</h1>
+    <nav id="navtab">
+      <a href="/"><button>Pembayaran</button></a>
+      <button class="active">Admin</button>
+      <a href="/login"><button>Login User</button></a>
+      <a href="/gate"><button>Gate</button></a>
+    </nav>
+    <main>
+      <div id="adminLogin" class="section">
+        <h2>Login Admin</h2>
+        <table class="form-table">
+          <tr><td>Username:</td><td><input type="text" id="adminUser" value="admin"></td></tr>
+          <tr><td>Password:</td><td><input type="password" id="adminPass" value="admin123"></td></tr>
+          <tr><td></td><td><button onclick="adminLogin()">LOGIN</button></td></tr>
+        </table>
+      </div>
+      <div id="adminPanel" class="section" style="display:none;">
+        <h2>Panel Admin</h2>
+        <p><button onclick="adminLogout()">LOGOUT</button></p>
+        <h3>Daftar Pembayaran:</h3>
+        <div id="paymentsList"></div>
+      </div>
+    </main>
+  </div>
+  <script>
+    function adminLogin() {
+      var username = document.getElementById('adminUser').value;
+      var password = document.getElementById('adminPass').value;
+      if(username==='admin' && password==='admin123') {
+        sessionStorage.setItem('admin','1');
+        showPanel(true);
+        loadPayments();
+      } else {
+        alert('Username/password salah!');
+      }
+    }
+    function adminLogout() {
+      sessionStorage.removeItem('admin');
+      showPanel(false);
+    }
+    function showPanel(show) {
+      document.getElementById('adminLogin').style.display=show?'none':'';
+      document.getElementById('adminPanel').style.display=show?'':'none';
+    }
+    function loadPayments() {
+      fetch('/api/payments').then(res=>res.json()).then(data=>{
+        var html = '';
+        if(data.length===0) html='<p>Belum ada pembayaran</p>';
+        else {
+          html = '<table class="data-table">';
+          html += '<tr><th>Nama</th><th>HP</th><th>Status</th><th>Tgl</th><th>Bukti</th><th>Aksi</th></tr>';
+          for(var i=0;i<data.length;i++){
+            var p=data[i];
+            html+='<tr>';
+            html+='<td>'+p.fullname+'</td>';
+            html+='<td>'+p.phone+'</td>';
+            html+='<td>'+p.status+'</td>';
+            html+='<td>'+new Date(p.date).toLocaleDateString('id-ID')+'</td>';
+            html+='<td>'+(p.proofImage?'<img src="'+p.proofImage+'" style="max-width:60px">':'')+'</td>';
+            html+='<td>';
+            if(p.status==='PENDING') html+='<button onclick="approvePayment(\''+p.id+'\')">APPROVE</button> ';
+            html+='<button onclick="deletePayment(\''+p.id+'\')">HAPUS</button>';
+            html+='</td>';
+            html+='</tr>';
+          }
+          html+='</table>';
+        }
+        document.getElementById('paymentsList').innerHTML = html;
+      });
+    }
+    function approvePayment(id) {
+  if(!confirm('Approve pembayaran ini?')) return;
+  fetch('/api/payment/approve',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id})
+  })
+  .then(r=>r.json())
+  .then(d=>{
+     if(d.success && d.payment){ // payment info dikirim endpoint
+        loadPayments();
+
+        // Buat pesan WA otomatis
+        var p = d.payment;
+        var pesan = `Akses mobile/web Anda sudah aktif.%0ALogin:%0AHP: ${p.phone}%0APassword: ${p.password}%0ALink: http://localhost:3000/login %0A%0ASetelah login, QR Check-In tersedia.`;
+        var walink = `https://wa.me/${p.phone}?text=${pesan}`;
+        window.open(walink, '_blank');
+     }
+     else if(d.success) loadPayments();
+     else alert('Gagal approve!');
+  });
+}
+    function deletePayment(id) {
+      if(!confirm('Hapus pembayaran ini?')) return;
+      fetch('/api/payment/delete',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({id})
+      }).then(r=>r.json()).then(d=>{ 
+         if(d.success) loadPayments();
+         else alert('Gagal hapus!');
+      });
+    }
+    window.onload=function(){
+      if(sessionStorage.getItem('admin')) { showPanel(true); loadPayments(); }
+    };
+  </script>
+</body>
+</html>

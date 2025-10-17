@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gate Scan - PayFlow</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>PAYFLOW GATE</h1>
+    <nav id="navtab">
+      <a href="/"><button>Pembayaran</button></a>
+      <a href="/admin"><button>Admin</button></a>
+      <a href="/login"><button>Login User</button></a>
+      <button class="active">Gate</button>
+    </nav>
+    <main>
+      <div class="section">
+        <h2>Gate Scanner / Input Token</h2>
+        <table class="form-table">
+          <tr>
+            <td>Token/QR:</td>
+            <td><input type="text" id="gateToken" placeholder="Masukkan token"></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td><button onclick="scanGate()">SCAN/VALIDASI</button></td>
+          </tr>
+        </table>
+        <div id="gateResult"></div>
+      </div>
+    </main>
+  </div>
+  <script>
+    function scanGate() {
+      var token = document.getElementById('gateToken').value.trim();
+      if(!token) {
+        showMessage('gateResult','Masukkan token!','error');
+        return;
+      }
+      // Demo: validasi sederhana, jika token tidak kosong dianggap OK
+      showMessage('gateResult','Akses berhasil untuk token: ' + token,'success');
+      document.getElementById('gateToken').value='';
+    }
+    function showMessage(elementId, message, type) {
+      var element = document.getElementById(elementId);
+      element.innerHTML = '<div class="message ' + type + '">' + message + '</div>';
+      setTimeout(function(){element.innerHTML='';},4000);
+    }
+  </script>
+</body>
+</html>

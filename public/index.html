@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pembayaran - PayFlow</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>PAYFLOW</h1>
+        <nav id="navtab">
+            <button class="active">Pembayaran</button>
+            <a href="/admin"><button>Admin</button></a>
+            <a href="/login"><button>Login User</button></a>
+            <a href="/gate"><button>Gate</button></a>
+        </nav>
+        <main>
+            <div id="section-pembayaran" class="section active">
+                <h2>Form Pembayaran Tiket</h2>
+                <form id="paymentForm" onsubmit="submitPayment(); return false;">
+                    <table class="form-table">
+                        <tr><td>Nama Lengkap:</td><td><input type="text" id="fullname" required></td></tr>
+                        <tr><td>No HP:</td><td><input type="tel" id="phone" placeholder="628xxxxxxxxx" required></td></tr>
+                        <tr><td>Bukti Transfer:</td><td><input type="file" id="proof" accept="image/*" required></td></tr>
+                        <tr><td></td><td>
+                        <button type="button" onclick="generatePaymentQR()">Generate QR</button>
+                        <button type="submit">KIRIM PEMBAYARAN</button>
+                        </td></tr>
+                    </table>
+                </form>
+                <div id="paymentMessage"></div>
+                <div id="paymentQR" class="qr-area" style="display:none;">
+                    <h3>QR Code Pembayaran</h3>
+                    <div id="qrContainer"></div>
+                    <p><b>Bank:</b> BCA - 1234567890<br><b>Atas Nama:</b> PT PAYFLOW INDONESIA</p>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+    function submitPayment() {
+        var fullname = document.getElementById('fullname').value;
+        var phone = document.getElementById('phone').value;
+        var proof = document.getElementById('proof').files[0];
+        if (!fullname || !phone || !proof) {
+            showMessage('paymentMessage','Semua field harus diisi!','error');
+            return;
+        }
+        var reader = new FileReader();
+        reader.onload = function() {
+            fetch('/api/payment', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({fullname, phone, proofImage:reader.result})
+            })
+            .then(res => res.json())
+            .then(res => {
+                if(res.success){
+                    showMessage('paymentMessage','Pembayaran berhasil dikirim! ID: '+res.id,'success');
+                    document.getElementById('paymentForm').reset();
+                    document.getElementById('paymentQR').style.display = 'none';
+                } else {
+                    showMessage('paymentMessage','Gagal kirim!','error');
+                }
+            });
+        };
+        reader.readAsDataURL(proof);
+    }
+    function generatePaymentQR() {
+        var fullname = document.getElementById('fullname').value;
+        var phone = document.getElementById('phone').value;
+        if (!fullname || !phone) {
+            alert('Isi semua field dulu!');
+            return;
+        }
+        var qrData = 'PAYMENT:'+fullname+':'+phone;
+        generateSimpleQR('qrContainer', qrData);
+        document.getElementById('paymentQR').style.display = 'block';
+    }
+    function showMessage(elementId, message, type) {
+        var element = document.getElementById(elementId);
+        element.innerHTML = '<div class="message ' + type + '">' + message + '</div>';
+        setTimeout(function() { element.innerHTML = ''; }, 5000);
+    }
+    // Simple QR generator (same as previously)
+    function generateSimpleQR(containerId, data) {
+        var container = document.getElementById(containerId);
+        var canvas = document.createElement('canvas');
+        canvas.width = 150;
+        canvas.height = 150;
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,150,150);
+        var hash = simpleHash(data);
+        ctx.fillStyle = '#000';
+        var cellSize = 5;
+        for (var x = 10; x < 140; x += cellSize) {
+            for (var y = 10; y < 140; y += cellSize) {
+                var index = Math.floor(x/cellSize) + Math.floor(y/cellSize) * 26;
+                if ((hash >> (index % 32)) & 1) {
+                    ctx.fillRect(x, y, cellSize-1, cellSize-1);
+                }
+            }
+        }
+        ctx.fillRect(10,10,20,20);
+        ctx.fillRect(120,10,20,20);
+        ctx.fillRect(10,120,20,20);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(15,15,10,10);
+        ctx.fillRect(125,15,10,10);
+        ctx.fillRect(15,125,10,10);
+        container.innerHTML = '';
+        container.appendChild(canvas);
+        var textDiv = document.createElement('div');
+        textDiv.style.fontSize = '10px';
+        textDiv.style.marginTop = '5px';
+        textDiv.style.fontFamily = 'monospace';
+        textDiv.textContent = data.substring(0,20)+'...';
+        container.appendChild(textDiv);
+    }
+    function simpleHash(str) {
+        var hash = 0;
+        for (var i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash + str.charCodeAt(i)) & 0xffffffff;
+        }
+        return hash;
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login User - PayFlow</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>PAYFLOW USER</h1>
+    <nav id="navtab">
+      <a href="/"><button>Pembayaran</button></a>
+      <a href="/admin"><button>Admin</button></a>
+      <button class="active">Login User</button>
+      <a href="/gate"><button>Gate</button></a>
+    </nav>
+    <main>
+      <div id="userLogin" class="section">
+        <h2>Login User</h2>
+        <table class="form-table">
+          <tr>
+            <td>No HP:</td>
+            <td><input type="tel" id="userPhone" placeholder="628xxxxxxxxx"></td>
+          </tr>
+          <tr>
+            <td>Password:</td>
+            <td><input type="password" id="userPassword"></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td><button onclick="userLogin()">LOGIN</button></td>
+          </tr>
+        </table>
+      </div>
+      <div id="userDashboard" class="section" style="display:none;">
+        <h2>Dashboard User</h2>
+        <p><button onclick="userLogout()">LOGOUT</button></p>
+        <div class="user-info">
+          <h3>Info User</h3>
+          <p id="userInfo"></p>
+        </div>
+        <div class="token-box">
+          <h3>TOKEN AKSES ANDA:</h3>
+          <input type="text" id="userToken" readonly style="width: 200px; font-family: monospace;">
+          <button onclick="copyToken()">COPY</button>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script>
+    function userLogin() {
+      var phone = document.getElementById('userPhone').value.trim();
+      var password = document.getElementById('userPassword').value.trim();
+      if(!phone || !password){ alert('Isi HP & password!'); return; }
+      fetch(`/api/userlogin?phone=${encodeURIComponent(phone)}&password=${encodeURIComponent(password)}`)
+      .then(r=>r.json()).then(d=>{
+        if(!d || !d.success){ alert('No HP atau password salah!'); return; }
+        document.getElementById('userLogin').style.display='none';
+        document.getElementById('userDashboard').style.display='block';
+        document.getElementById('userInfo').innerHTML ='<b>Nama:</b> '+d.fullname+'<br><b>HP:</b> '+d.phone;
+        document.getElementById('userToken').value = d.phone.substr(-8)+"-TOKEN";
+      });
+    }
+    function userLogout() {
+        document.getElementById('userLogin').style.display='block';
+        document.getElementById('userDashboard').style.display='none';
+    }
+    function copyToken() {
+      var tokenInput = document.getElementById('userToken');
+      tokenInput.select();
+      document.execCommand('copy');
+      alert('Token berhasil di-copy!');
+    }
+  </script>
+</body>
+</html>
